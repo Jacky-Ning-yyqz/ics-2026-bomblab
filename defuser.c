@@ -184,12 +184,37 @@ int solve_phase_6(uint64_t challenge, char *out, size_t cap) {
     return write_answer(out, cap, values, count);
 }
 
-int solve_secret(uint64_t challenge, uint64_t context, char *out, size_t cap) {
-    (void)challenge;
-    (void)context;
-    (void)out;
-    (void)cap;
-    // TODO（选做）: 根据 secret_gate、secret_copy 和 secret_phase 的汇编构造完整的第七行，写入 out 后返回 0。
-    // 第七行不一定只有整数，可以直接用 snprintf 写入；还没完成时保持返回 1，测试会显示 not attempted。
-    return 1;
+int solve_secret(uint64_t challenge, uint64_t context, char *out, size_t cap)
+{
+    uint64_t A = challenge;            /* secret_gate 的 rsi */
+    uint64_t B = context;              /* secret_gate 的 rdx */
+    uint32_t c, amix, bmix, k, x, m, v1, v2, v3;
+    size_t n = 0u, i;
+    int w;
+
+    c    = (uint32_t)B & UINT32_C(3);
+    amix = (uint32_t)(A >> 32) ^ (uint32_t)A;
+    bmix = (uint32_t)(B >> 32) ^ (uint32_t)B;
+    k    = (c * UINT32_C(0xb5c9)) ^ (uint32_t)(B >> 16);
+
+    x = amix ^ bmix;
+    m = (((x << 5) | (x >> 27)) + UINT32_C(0xb5c9)) ^ UINT32_C(0x9b19);
+
+    v1 = c;
+    v2 = m ^ k;
+    v3 = v2 ^ (bmix + c + UINT32_C(0x9b19) + (amix >> 5));
+
+    if (cap < 96u) return 1;
+
+    for (i = 0u; i < 32u; ++i)         /* 32 字节伪装 */
+        out[n++] = 'A';
+    out[n++] = 'O';                    /* 偏移 32：OPEN */
+    out[n++] = 'P';
+    out[n++] = 'E';
+    out[n++] = 'N';
+
+    w = snprintf(out + n, cap - n, "%u %u %u", v1, v2, v3);
+    if (w < 0 || (size_t)w >= cap - n) return 1;
+
+    return 0;
 }
