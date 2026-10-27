@@ -104,11 +104,47 @@ int solve_phase_4(uint64_t challenge, char *out, size_t cap) {
     return write_answer(out, cap, values, count);
 }
 
+/* 第 5 关链表节点数据（从炸弹 .data 段读出，按链表物理顺序） */
+static const uint32_t p5_a[12] = {
+    UINT32_C(0x0b15), UINT32_C(0x0638), UINT32_C(0x090a), UINT32_C(0x0a7b),
+    UINT32_C(0x005b), UINT32_C(0x043e), UINT32_C(0x0853), UINT32_C(0x0206),
+    UINT32_C(0x051c), UINT32_C(0x0159), UINT32_C(0x0334), UINT32_C(0x0734)
+};
+static const uint32_t p5_b[12] = {
+    UINT32_C(0xe0a0), UINT32_C(0x92ad), UINT32_C(0x2b91), UINT32_C(0xad7d),
+    UINT32_C(0xa0eb), UINT32_C(0x6a61), UINT32_C(0x63f5), UINT32_C(0x9a5d),
+    UINT32_C(0xca9a), UINT32_C(0xafe7), UINT32_C(0xc1f5), UINT32_C(0xe511)
+};
+
+static uint32_t p5_traverse(uint64_t challenge, uint32_t *aux) {
+    uint32_t idx = (uint32_t)(challenge & UINT64_C(7));
+    uint32_t n   = (uint32_t)((challenge >> 3) & UINT64_C(3));
+    uint32_t v   = (uint32_t)(challenge >> 6) ^ (uint32_t)(challenge >> 32);
+    uint32_t i;
+
+    v ^= UINT32_C(0xae9a);
+    v = 3u * v + p5_b[idx];
+    v ^= p5_a[idx];
+    *aux = p5_a[idx];
+
+    for (i = 0u; i < n; ++i) {
+        idx++;
+        v = 3u * v + p5_b[idx];
+        v ^= p5_a[idx];
+        *aux = p5_a[idx];
+    }
+    return v;
+}
+
 int solve_phase_5(uint64_t challenge, char *out, size_t cap) {
     uint32_t values[MAX_FIELDS] = {0};
     size_t count = 0;
-    (void)challenge;
-    // TODO: 根据 phase_05 的汇编，用 challenge 算出口令中的各个整数，依次存入 values，并把 count 改为整数个数。
+    uint32_t aux = 0u;
+
+    values[0] = p5_traverse(challenge, &aux);
+    values[1] = aux;
+    count = 2;
+
     return write_answer(out, cap, values, count);
 }
 
