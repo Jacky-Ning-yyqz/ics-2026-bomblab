@@ -56,8 +56,25 @@ int solve_phase_2(uint64_t challenge, char *out, size_t cap) {
 int solve_phase_3(uint64_t challenge, char *out, size_t cap) {
     uint32_t values[MAX_FIELDS] = {0};
     size_t count = 0;
-    (void)challenge;
-    // TODO: 根据 phase_03 的汇编，用 challenge 算出口令中的各个整数，依次存入 values，并把 count 改为整数个数。
+    uint32_t sel = (uint32_t)(challenge & UINT64_C(7));
+    uint32_t x   = (uint32_t)(challenge >> 32) ^ (uint32_t)(challenge >> 3);
+    uint32_t r;
+
+    switch (sel) {
+        case 0u:  r = (x ^ UINT32_C(0xba19)) + (x >> 2);      break;
+        case 1u:  r = 5u * x + UINT32_C(0x42b8);              break;
+        case 2u:  r = 5u * x + UINT32_C(0x3f601);             break;
+        case 3u:  r = (2u * x) ^ UINT32_C(0xbc9);             break;
+        case 4u:  r = 5u * x + UINT32_C(0x3728);              break;
+        case 5u:  r = (x ^ UINT32_C(0xf30)) + (x >> 1);       break;
+        case 6u:  r = (4u * x) ^ UINT32_C(0xb150);            break;
+        default:  r = 5u * x + UINT32_C(0x79e2);              break;
+    }
+
+    values[0] = sel;
+    values[1] = r;
+    count = 2;
+
     return write_answer(out, cap, values, count);
 }
 
